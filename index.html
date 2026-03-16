@@ -1,0 +1,43 @@
+// ==============================
+// FILE: Doc/index.html
+// ==============================
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>Calendario prenotazioni - Casa Cordovado</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h1>Calendario prenotazioni - Casa di famiglia a Cordovado</h1>
+
+  <div class="calendar-controls">
+    <button id="prevMonth">? Mese precedente</button>
+    <div id="currentMonth"></div>
+    <button id="nextMonth">Mese successivo ?</button>
+  </div>
+
+  <div id="calendar"></div>
+
+  <h2>Nuova prenotazione</h2>
+  <form id="bookingForm">
+    <label>
+      Nome:
+      <input type="text" id="name" required />
+    </label>
+    <label>
+      Dal:
+      <input type="date" id="startDate" required />
+    </label>
+    <label>
+      Al:
+      <input type="date" id="endDate" required />
+    </label>
+    <button type="submit">Prenota</button>
+  </form>
+
+  <div id="message"></div>
+
+  <script src="script.js"></script>
+</body>
+</html>
