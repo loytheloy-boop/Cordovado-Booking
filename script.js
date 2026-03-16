@@ -1,6 +1,7 @@
 // ==============================
-// FILE: frontend/script.js
+// FILE: script.js (versione migliorata)
 // ==============================
+
 const BASE_URL = "https://cordovado-booking1.onrender.com";
 
 let bookings = [];
@@ -12,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
   currentYear = today.getFullYear();
   currentMonth = today.getMonth();
 
+  // Navigazione mesi
   document.getElementById("prevMonth").addEventListener("click", () => {
     currentMonth--;
     if (currentMonth < 0) {
@@ -30,13 +32,22 @@ document.addEventListener("DOMContentLoaded", () => {
     renderCalendar();
   });
 
+  // Form prenotazione
   document
     .getElementById("bookingForm")
     .addEventListener("submit", handleBookingSubmit);
 
+  // Nuovi bottoni
+  document.getElementById("btnList").addEventListener("click", showList);
+  document.getElementById("btnStats").addEventListener("click", showStats);
+
+  // Carica prenotazioni e mostra calendario
   loadBookings().then(renderCalendar);
 });
 
+// ==============================
+// CARICAMENTO PRENOTAZIONI
+// ==============================
 async function loadBookings() {
   try {
     const res = await fetch(`${BASE_URL}/api/bookings`);
@@ -47,23 +58,16 @@ async function loadBookings() {
   }
 }
 
+// ==============================
+// RENDER CALENDARIO
+// ==============================
 function renderCalendar() {
   const calendarEl = document.getElementById("calendar");
   calendarEl.innerHTML = "";
 
   const monthNames = [
-    "Gennaio",
-    "Febbraio",
-    "Marzo",
-    "Aprile",
-    "Maggio",
-    "Giugno",
-    "Luglio",
-    "Agosto",
-    "Settembre",
-    "Ottobre",
-    "Novembre",
-    "Dicembre"
+    "Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno",
+    "Luglio", "Agosto", "Settembre", "Ottobre", "Novembre", "Dicembre"
   ];
 
   document.getElementById("currentMonth").textContent =
@@ -139,6 +143,9 @@ function isDateInRange(dateStr, startStr, endStr) {
   return d >= s && d <= e;
 }
 
+// ==============================
+// INVIO PRENOTAZIONE
+// ==============================
 async function handleBookingSubmit(event) {
   event.preventDefault();
   const name = document.getElementById("name").value.trim();
@@ -156,9 +163,7 @@ async function handleBookingSubmit(event) {
   try {
     const res = await fetch(`${BASE_URL}/api/bookings`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, startDate, endDate })
     });
 
@@ -181,4 +186,67 @@ async function handleBookingSubmit(event) {
     messageEl.textContent = "Errore di comunicazione con il server.";
     messageEl.style.color = "red";
   }
+}
+
+// ==============================
+// LISTA PRENOTAZIONI ORDINATA
+// ==============================
+function showList() {
+  const container = document.getElementById("listContainer");
+  container.innerHTML = "";
+
+  if (bookings.length === 0) {
+    container.textContent = "Nessuna prenotazione presente.";
+    return;
+  }
+
+  const sorted = [...bookings].sort((a, b) => a.name.localeCompare(b.name));
+
+  const ul = document.createElement("ul");
+
+  sorted.forEach(b => {
+    const li = document.createElement("li");
+    li.textContent = `${b.name}: dal ${b.startDate} al ${b.endDate}`;
+    ul.appendChild(li);
+  });
+
+  container.appendChild(ul);
+}
+
+// ==============================
+// STATISTICHE IN PERCENTUALE
+// ==============================
+function showStats() {
+  const container = document.getElementById("statsContainer");
+  container.innerHTML = "";
+
+  if (bookings.length === 0) {
+    container.textContent = "Nessuna prenotazione presente.";
+    return;
+  }
+
+  const stats = {};
+  let totalDays = 0;
+
+  bookings.forEach(b => {
+    const start = new Date(b.startDate);
+    const end = new Date(b.endDate);
+    const days = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
+
+    if (!stats[b.name]) stats[b.name] = 0;
+    stats[b.name] += days;
+
+    totalDays += days;
+  });
+
+  const ul = document.createElement("ul");
+
+  Object.entries(stats).forEach(([name, days]) => {
+    const perc = ((days / totalDays) * 100).toFixed(1);
+    const li = document.createElement("li");
+    li.textContent = `${name}: ${days} giorni (${perc}%)`;
+    ul.appendChild(li);
+  });
+
+  container.appendChild(ul);
 }
