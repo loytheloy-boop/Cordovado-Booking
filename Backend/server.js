@@ -1,45 +1,103 @@
 // ==============================
 // FILE: backend/server.js
+// Backend con salvataggio su GitHub
 // ==============================
+
 const express = require("express");
-const fs = require("fs");
-const path = require("path");
 const cors = require("cors");
-const nodemailer = require("nodemailer");
+const axios = require("axios");
 require("dotenv").config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-const dataDir = path.join(__dirname, "data");
-const bookingsFile = path.join(dataDir, "bookings.json");
+// ==============================
+// CONFIGURAZIONE GITHUB
+// ==============================
+const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
+const GITHUB_REPO_OWNER = process.env.GITHUB_REPO_OWNER;
+const GITHUB_REPO_NAME = process.env.GITHUB_REPO_NAME;
+const GITHUB_FILE_PATH = process.env.GITHUB_FILE_PATH || "data/bookings.json";
 
+const GITHUB_API_BASE = "https://api.github.com";
+
+// ==============================
+// MIDDLEWARE
+// ==============================
 app.use(cors());
 app.use(express.json());
 
-const frontendPath = path.join(__dirname, "..", "frontend");
-app.use(express.static(frontendPath));
-
 // ==============================
-// LETTURA E SCRITTURA FILE
+// LEGGI BOOKINGS DA GITHUB
 // ==============================
-function readBookings() {
-  if (!fs.existsSync(bookingsFile)) return [];
+async function readBookings() {
   try {
-    return JSON.parse(fs.readFileSync(bookingsFile, "utf-8"));
-  } catch (e) {
-    console.error("Errore parsing bookings.json:", e);
+    const res = await axios.get(
+      `${GITHUB_API_BASE}/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`,
+      {
+        headers: {
+          Authorization: `Bearer ${GITHUB_TOKEN}`,
+          Accept: "application/vnd.github+json"
+        }
+      }
+    );
+
+    const contentBase64 = res.data.content;
+    const jsonStr = Buffer.from(contentBase64, "base64").toString("utf-8");
+    return JSON.parse(jsonStr);
+  } catch (err) {
+    console.error("Errore lettura bookings da GitHub:", err.response?.status, err.response?.data || err.message);
     return [];
   }
 }
 
-function writeBookings(bookings) {
-  if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
-  fs.writeFileSync(bookingsFile, JSON.stringify(bookings, null, 2), "utf-8");
+// ==============================
+// SCRIVI BOOKINGS SU GITHUB
+// ==============================
+async function writeBookings(bookings) {
+  try {
+    // 1) Leggi SHA del file attuale
+    const getRes = await axios.get(
+      `${GITHUB_API_BASE}/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`,
+      {
+        headers: {
+          Authorization: `Bearer ${GITHUB_TOKEN}`,
+          Accept: "application/vnd.github+json"
+        }
+      }
+    );
+
+    const sha = getRes.data.sha;
+
+    // 2) Codifica nuovo contenuto
+    const newContent = Buffer.from(
+      JSON.stringify(bookings, null, 2),
+      "utf-8"
+    ).toString("base64");
+
+    // 3) Aggiorna file su GitHub
+    await axios.put(
+      `${GITHUB_API_BASE}/repos/${GITHUB_REPO_OWNER}/${GITHUB_REPO_NAME}/contents/${GITHUB_FILE_PATH}`,
+      {
+        message: "Update bookings.json",
+        content: newContent,
+        sha
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${GITHUB_TOKEN}`,
+          Accept: "application/vnd.github+json"
+        }
+      }
+    );
+
+  } catch (err) {
+    console.error("Errore scrittura bookings su GitHub:", err.response?.status, err.response?.data || err.message);
+  }
 }
 
 // ==============================
-// OVERLAP DATE
+// FUNZIONE OVERLAP DATE
 // ==============================
 function rangesOverlap(startA, endA, startB, endB) {
   const aStart = new Date(startA);
@@ -50,39 +108,18 @@ function rangesOverlap(startA, endA, startB, endB) {
 }
 
 // ==============================
-// SMTP (opzionale)
-// ==============================
-let transporter = null;
-if (
-  process.env.SMTP_HOST &&
-  process.env.SMTP_PORT &&
-  process.env.SMTP_USER &&
-  process.env.SMTP_PASS &&
-  process.env.NOTIFY_EMAILS
-) {
-  transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT),
-    secure: Number(process.env.SMTP_PORT) === 465,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS
-    }
-  });
-} else {
-  console.warn("SMTP non configurato. Le email NON verranno inviate.");
-}
-
-// ==============================
 // API
 // ==============================
+
+// Test backend
 app.get("/", (req, res) => {
-  res.send("Backend attivo e funzionante!");
+  res.send("Backend attivo con database GitHub!");
 });
 
 // GET PRENOTAZIONI
-app.get("/api/bookings", (req, res) => {
-  res.json(readBookings());
+app.get("/api/bookings", async (req, res) => {
+  const bookings = await readBookings();
+  res.json(bookings);
 });
 
 // POST PRENOTAZIONE
@@ -103,7 +140,7 @@ app.post("/api/bookings", async (req, res) => {
       error: "La data di fine non può essere precedente alla data di inizio"
     });
 
-  const bookings = readBookings();
+  const bookings = await readBookings();
 
   const overlap = bookings.some((b) =>
     rangesOverlap(startDate, endDate, b.startDate, b.endDate)
@@ -120,25 +157,23 @@ app.post("/api/bookings", async (req, res) => {
   };
 
   bookings.push(newBooking);
-  writeBookings(bookings);
+  await writeBookings(bookings);
 
   res.status(201).json(newBooking);
 });
 
-// ==============================
 // DELETE PRENOTAZIONE
-// ==============================
-app.delete("/api/bookings/:id", (req, res) => {
+app.delete("/api/bookings/:id", async (req, res) => {
   const id = Number(req.params.id);
 
-  let bookings = readBookings();
+  let bookings = await readBookings();
   const newList = bookings.filter(b => b.id !== id);
 
   if (newList.length === bookings.length) {
     return res.status(404).json({ error: "Prenotazione non trovata" });
   }
 
-  writeBookings(newList);
+  await writeBookings(newList);
   res.json({ success: true });
 });
 
