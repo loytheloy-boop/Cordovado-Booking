@@ -1,49 +1,61 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cordovado Booking</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calendario Prenotazioni Cordovado</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 
 <body>
 
-    <!-- HEADER -->
-    <header>Cordovado Booking</header>
+  <div class="header-image">
+    <img src="casa.jpg" alt="Intestazione" />
+  </div>
 
-    <!-- HERO IMAGE -->
-    <div class="hero"></div>
+  <h1>Calendario Prenotazioni</h1>
 
-    <!-- CARD: FORM PRENOTAZIONE -->
-    <div class="card">
-        <h2>Prenota il tuo soggiorno</h2>
+  <div class="calendar-controls">
+    <button id="prevMonth">â—€</button>
+    <span id="currentMonth"></span>
+    <button id="nextMonth">â–¶</button>
+  </div>
 
-        <label for="name">Nome</label>
-        <input type="text" id="name" placeholder="Inserisci il tuo nome">
+  <div id="calendar"></div>
 
-        <label for="startDate">Data inizio</label>
-        <input type="date" id="startDate">
+  <form id="bookingForm">
+    <label>
+      Nome:
+      <input type="text" id="name" required />
+    </label>
 
-        <label for="endDate">Data fine</label>
-        <input type="date" id="endDate" disabled>
+    <label>
+      Data inizio:
+      <input type="date" id="startDate" required />
+    </label>
 
-        <button id="bookBtn">Prenota</button>
-    </div>
+    <label>
+      Data fine:
+      <input type="date" id="endDate" required />
+    </label>
 
-    <!-- CARD: CALENDARIO -->
-    <div class="card">
-        <h2>Calendario disponibilità</h2>
-        <div id="calendar" class="calendar"></div>
-    </div>
+    <button type="submit">Prenota</button>
 
-    <!-- CARD: LISTA PRENOTAZIONI -->
-    <div class="card">
-        <h2>Elenco prenotazioni</h2>
-        <button id="loadBookingsBtn">Mostra prenotazioni</button>
-        <div id="bookingList"></div>
-    </div>
+    <div id="message"></div>
+  </form>
 
-    <script src="script.js"></script>
+  <div class="extra-buttons">
+    <button id="btnList">Elenco prenotazioni</button>
+    <button id="btnCopyList">Copia lista</button>
+
+    <button id="btnStats">Statistiche</button>
+    <button id="btnCopyStats">Copia statistiche</button>
+  </div>
+
+  <div id="listContainer"></div>
+  <div id="statsContainer"></div>
+
+  <script src="script.js"></script>
+
 </body>
 </html>
