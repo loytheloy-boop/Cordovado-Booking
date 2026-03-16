@@ -39,6 +39,20 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("btnCopyList").addEventListener("click", copyList);
   document.getElementById("btnCopyStats").addEventListener("click", copyStats);
 
+  // ==============================
+  // NUOVA FUNZIONE: auto-set Data Fine
+  // ==============================
+  document.getElementById("startDate").addEventListener("change", () => {
+    const start = document.getElementById("startDate").value;
+    if (!start) return;
+
+    const startDateObj = new Date(start);
+    startDateObj.setDate(startDateObj.getDate() + 1);
+
+    const nextDay = startDateObj.toISOString().slice(0, 10);
+    document.getElementById("endDate").value = nextDay;
+  });
+
   loadBookings().then(renderCalendar);
 });
 
