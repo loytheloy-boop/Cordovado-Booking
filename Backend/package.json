@@ -1,6 +1,3 @@
-// ==============================
-// FILE: backend/package.json
-// ==============================
 {
   "name": "cordovado-booking-backend",
   "version": "1.0.0",
